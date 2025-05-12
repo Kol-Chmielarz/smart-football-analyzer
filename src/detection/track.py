@@ -12,11 +12,11 @@ import argparse, pathlib
 from ultralytics import YOLO
 
 def run(video_path: str,
-        model_path="yolov8n.pt",
+        model="yolov8n.pt",
         imgsz: int = 960,
         conf: float = 0.25):
     video_path = pathlib.Path(video_path)
-    model = YOLO(model_path)
+    model = YOLO(model)
 
     model.track(
         source=str(video_path),
