@@ -31,7 +31,7 @@ def run(video_path: str,
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("video")
+    ap.add_argument("video_path")
     ap.add_argument("--model", default="yolov8n.pt")
     ap.add_argument("--imgsz", type=int, default=960)
     ap.add_argument("--conf",  type=float, default=0.25)
