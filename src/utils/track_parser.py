@@ -1,15 +1,15 @@
 """
 track_parser.py
-----------------
-Utility to load YOLO-ByteTrack label files into a pandas DataFrame.
+---------------
+Load YOLO-ByteTrack TXT labels into a DataFrame.
 
-Each label TXT line may have 6 columns (id x y w h conf) or 7 columns
-(id x y w h conf cls). Coordinates are normalized (0–1).
+Label formats supported
+-----------------------
+7-col TRACK  : cls x y w h conf track_id
+6-col TRACK  : track_id cls x y w h          (no conf)
+6-col DETECT : cls x y w h conf             (no track IDs)
 
-Usage
------
-from src.utils.track_parser import load_tracks
-df = load_tracks("output/runs/trackX/labels")
+All coordinates are normalised (0–1).
 """
 from __future__ import annotations
 
@@ -17,35 +17,33 @@ from pathlib import Path
 import pandas as pd
 
 
-def load_tracks(label_dir: str | Path = "output/runs/track/track/labels") -> pd.DataFrame:
-    """
-    Load all *.txt label files in `label_dir` into a tidy DataFrame.
-
-    Returns
-    -------
-    pd.DataFrame
-        Columns: frame, id, x, y, w, h, conf, cls
-    """
+def load_tracks(label_dir: str | Path) -> pd.DataFrame:
     label_dir = Path(label_dir)
     if not label_dir.exists():
-        raise FileNotFoundError(f"Label directory not found: {label_dir}")
+        raise FileNotFoundError(label_dir)
 
     rows: list[tuple] = []
-    for txt_path in sorted(label_dir.glob("*.txt")):
-        frame_num = int(txt_path.stem.split("_")[-1])
-        with txt_path.open() as fh:
+    for txt in sorted(label_dir.glob("*.txt")):
+        frame = int(txt.stem.split("_")[-1])
+        with txt.open() as fh:
             for line in fh:
                 parts = line.strip().split()
                 if not parts:
                     continue
-                if len(parts) == 7:
-                    tid, x, y, w, h, conf, cls = map(float, parts)
-                elif len(parts) == 6:
-                    tid, x, y, w, h, conf = map(float, parts)
-                    cls = -1.0
-                else:
-                    raise ValueError(f"Unexpected label format in {txt_path}: {parts}")
-                rows.append((frame_num, int(tid), x, y, w, h, conf, int(cls)))
 
-    df = pd.DataFrame(rows, columns=["frame", "id", "x", "y", "w", "h", "conf", "cls"])
-    return df.sort_values(["id", "frame"]).reset_index(drop=True)
+                if len(parts) == 7:          # cls x y w h conf tid
+                    cls, x, y, w, h, conf, tid = map(float, parts)
+                elif len(parts) == 6:
+                    if float(parts[0]).is_integer():  # assume TRACK: tid cls ...
+                        tid, cls, x, y, w, h = map(float, parts)
+                        conf = 1.0
+                    else:                              # DETECT: cls x y w h conf
+                        cls, x, y, w, h, conf = map(float, parts)
+                        tid = -1.0
+                else:
+                    continue
+
+                rows.append((frame, int(tid), x, y, w, h, conf, int(cls)))
+
+    cols = ["frame", "id", "x", "y", "w", "h", "conf", "cls"]
+    return pd.DataFrame(rows, columns=cols).sort_values(["frame", "id"]).reset_index(drop=True)

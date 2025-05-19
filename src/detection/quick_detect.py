@@ -29,7 +29,7 @@ def main(
             break
         res = model(frame, imgsz=imgsz, conf=conf)[0]
         cv2.imshow("players", res.plot())
-        if cv2.waitKey(1) & 0xFF == 27:  # Esc to exit
+        if cv2.waitKey(1) & 0xFF == 27:  # Esc
             break
 
     cap.release()
